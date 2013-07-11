@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>The Money Game</title>
+</head>
+<style>
+  body {
+    font-family: sans-serif;
+  }
+
+  .block-of-time {
+    border: 1px solid black;
+    width: 100px;
+    height: 20px;
+    display: inline-block;
+  }
+  #timeline {
+    white-space: nowrap;
+    position: absolute;
+    left: 0;
+  }
+
+  #to-buy {
+    text-align: center;
+    padding: 75px 0 25px;
+  }
+
+  #jobs {
+    text-align: center;
+    padding: 150px 0;
+  }
+
+  .product, .job {
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+    display: inline-block;
+    margin: 0 5px;
+    position: relative;
+    background: white;
+    cursor: move;
+    z-index: 2;
+  }
+
+  .price, .wage {
+    font-size: 35px;
+    line-height: 90px;
+  }
+
+  .happiness {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+  }
+
+  .block-of-time.drop-hover {
+    background: gray;
+  }
+
+  #notice {
+    display: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    top: 0;
+    left: 0;
+    background: white;
+    text-align: center;
+    font-size: 200px;
+  }
+
+  #actions {
+    text-align: center;
+    margin-bottom: 150px;
+  }
+
+
+</style>
+<script src="jquery.min.js"></script>
+<script src="jquery-ui.min.js"></script>
+<script>
+  $(function() {
+    // timeline
+    var blocksOfTime = 100;
+    for (var i = 0; i < blocksOfTime; i++) {
+      $("#timeline").append($('<div class="block-of-time"></div>'));
+    }
+
+    setInterval(function() {
+      var left = $("#timeline").css('left');
+      left = parseInt(left);
+      left -= 10;
+      $("#timeline").css('left', left + 'px');
+    }, 1000);
+
+    // purchases
+    window.products = [];
+    for (var i = 0; i < 5; i++) {
+      products.push({
+        price: Math.ceil(Math.random()*100),
+        happiness: Math.ceil(Math.random()*10),
+      })
+    }
+
+    for (var i = 0; i < products.length; i++) {
+      $('#to-buy').append(
+        '<div class="product">'
+          + '<div class="price">'
+            + '$' + products[i].price
+          + '</div>'
+          + '<div class="happiness">'
+            + '☺ ' + products[i].happiness
+          + '</div>'
+        + '</div>'
+      )
+    }
+
+    $('.product').draggable();
+    $('.block-of-time').droppable({
+      accept: '.product, .job',
+      tolerance: 'pointer',
+      hoverClass: "drop-hover"
+    }).on('drop', function(event, ui) {
+      console.log(ui.draggable)
+      if ($(ui.draggable).hasClass('product')) {
+        console.log(ui.draggable.find('.price').text().slice(1));
+        money -= parseInt(ui.draggable.find('.price').text().slice(1));
+        if (money < 0) {
+          $('#notice').text("Oh no! You're out of money. Game over.").show();
+        }
+        $('#info-money').text(money);
+        happiness += parseInt(ui.draggable.find('.happiness').text().slice(2));
+        $('#info-happiness').text(happiness);
+      } else {
+        money += parseInt(ui.draggable.find('.wage').text().slice(1));
+        totalMoney += parseInt(ui.draggable.find('.wage').text().slice(1));
+        $('#info-money').text(money);
+      }
+      ui.draggable.remove();
+    });
+
+    var money = 0;
+    var totalMoney = 0;
+    var happiness = 0;
+
+    // jobs
+    var jobs = [];
+    for (var i = 0; i < 5; i++) {
+      jobs.push({
+        wage: Math.ceil(Math.random()*25),
+      })
+    }
+
+    for (var i = 0; i < jobs.length; i++) {
+      $('#jobs').append(
+        '<div class="job">'
+          + '<div class="wage">'
+            + '$' + jobs[i].wage
+          + '</div>'
+        + '</div>'
+      )
+    }
+
+    $('.job').draggable();
+
+    // done
+    $('button#done').on('click', function() {
+      // var moneySpent = totalMoney-money;
+      // var value = 1.0*happiness/moneySpent*1000;
+
+      var value = Math.round(happiness/maxHappiness*100);
+      $('#notice').text("Your score is: " + value).show();
+    });
+
+
+    // calculate approximate "max possible value"
+    products.sort(function(a,b) { return (b.happiness/b.price) - (a.happiness/a.price)})
+    var maxMoney = jobs.reduce(function(total, job) { return total + job.wage; }, 0)
+    var maxHappiness = 0;
+    for (var i = 0; i < products.length; i++) {
+      if (maxMoney - products[i].price > 0) {
+        maxMoney -= products[i].price;
+        maxHappiness += products[i].happiness;
+      } else {
+        break;
+      }
+    }
+  })
+</script>
+<body>
+  <div id="info">
+    <div id="info-money-container">$<span id="info-money">0</span></div>
+    <div id="info-happiness-container">☺ <span id="info-happiness">0</span></div>
+  </div>
+  <div id="to-buy"></div>
+  <div id="actions">
+    <button id="done">Done</button>
+  </div>
+  <div id="play">
+    <div id="cursor"></div>
+    <div id="timeline"></div>
+  </div>
+  <div id="jobs"></div>
+  <div id="notice">
+
+  </div>
+</body>
+</html>
